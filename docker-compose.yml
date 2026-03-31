@@ -1,0 +1,131 @@
+version: "3.8"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Shared Airflow configuration — applied to all Airflow services
+# ─────────────────────────────────────────────────────────────────────────────
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.9.1-python3.11
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"
+    AIRFLOW__SMTP__SMTP_HOST: "smtp.gmail.com"
+    AIRFLOW__SMTP__SMTP_PORT: "587"
+    AIRFLOW__SMTP__SMTP_USER: ${ALERT_EMAIL}
+    AIRFLOW__SMTP__SMTP_PASSWORD: ${AIRFLOW_SMTP_PASSWORD:-''}
+    AIRFLOW__SMTP__SMTP_MAIL_FROM: ${ALERT_EMAIL}
+    GOOGLE_APPLICATION_CREDENTIALS: /opt/airflow/secrets/keyfile.json
+    GCP_PROJECT_ID: ${GCP_PROJECT_ID}
+    GCP_RAW_DATASET: ${GCP_RAW_DATASET}
+    GCP_BUCKET_NAME: ${GCP_BUCKET_NAME}
+    PYTHONPATH: /opt/airflow
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/logs:/opt/airflow/logs
+    - ./airflow/plugins:/opt/airflow/plugins
+    - ./extract:/opt/airflow/extract
+    - ./load:/opt/airflow/load
+    - ./.env:/opt/airflow/.env
+    - ${GOOGLE_APPLICATION_CREDENTIALS}:/opt/airflow/secrets/keyfile.json:ro
+  depends_on: &airflow-common-depends-on
+    postgres:
+      condition: service_healthy
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Services
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+  # ── Metadata Database ───────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15
+    container_name: nhs_rtt_postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Airflow Webserver ────────────────────────────────────────────────────────
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: nhs_rtt_airflow_webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  # ── Airflow Scheduler ────────────────────────────────────────────────────────
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: nhs_rtt_airflow_scheduler
+    command: scheduler
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "airflow",
+          "jobs",
+          "check",
+          "--job-type",
+          "SchedulerJob",
+          "--hostname",
+          "$${HOSTNAME}",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  # ── Airflow Initialisation ───────────────────────────────────────────────────
+  airflow-init:
+    <<: *airflow-common
+    container_name: nhs_rtt_airflow_init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username ${AIRFLOW_ADMIN_USERNAME:-admin} \
+          --password ${AIRFLOW_ADMIN_PASSWORD:-admin} \
+          --firstname NHS \
+          --lastname Pipeline \
+          --role Admin \
+          --email ${ALERT_EMAIL:-admin@example.com}
+        echo "Airflow initialised successfully"
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Volumes — persistent storage that survives container restarts
+# ─────────────────────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
