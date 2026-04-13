@@ -27,9 +27,10 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ValidationResult:
     """Result of a single validation check."""
+
     check_name: str
     passed: bool
-    severity: str           # 'error', 'warning', 'info'
+    severity: str  # 'error', 'warning', 'info'
     message: str
     affected_rows: int = 0
     details: dict = field(default_factory=dict)
@@ -52,11 +53,11 @@ class NHSRTTValidator:
 
     # Treatment function codes that should always be present
     CORE_SPECIALTIES = {
-        'C_110',  # Trauma and Orthopaedic — always highest volume
-        'C_130',  # Ophthalmology — always high volume
-        'C_100',  # General Surgery
-        'C_120',  # Ear Nose and Throat
-        'C_999',  # Total row — always present
+        "C_110",  # Trauma and Orthopaedic — always highest volume
+        "C_130",  # Ophthalmology — always high volume
+        "C_100",  # General Surgery
+        "C_120",  # Ear Nose and Throat
+        "C_999",  # Total row — always present
     }
 
     def __init__(self, zip_path: Path):
@@ -65,8 +66,8 @@ class NHSRTTValidator:
 
     def _load_data(self) -> pd.DataFrame:
         """Load CSV from ZIP into a DataFrame."""
-        with zipfile.ZipFile(self.zip_path, 'r') as zf:
-            csv_files = [f for f in zf.namelist() if f.endswith('.csv')]
+        with zipfile.ZipFile(self.zip_path, "r") as zf:
+            csv_files = [f for f in zf.namelist() if f.endswith(".csv")]
             with zf.open(csv_files[0]) as f:
                 return pd.read_csv(f, low_memory=False)
 
@@ -108,7 +109,7 @@ class NHSRTTValidator:
                 f"{'Within' if passed else 'OUTSIDE'} expected range "
                 f"(50,000 - 300,000)."
             ),
-            details={"row_count": row_count}
+            details={"row_count": row_count},
         )
 
     def check_column_count(self) -> ValidationResult:
@@ -124,7 +125,7 @@ class NHSRTTValidator:
                 f"Column count: {col_count}. "
                 f"{'Correct' if passed else 'UNEXPECTED — review dbt staging model'}."
             ),
-            details={"column_count": col_count}
+            details={"column_count": col_count},
         )
 
     def check_single_period(self) -> ValidationResult:
@@ -132,7 +133,7 @@ class NHSRTTValidator:
         Each file should contain exactly one reporting period.
         Multiple periods would indicate files have been concatenated.
         """
-        periods = self.df['Period'].unique().tolist()
+        periods = self.df["Period"].unique().tolist()
         passed = len(periods) == 1
 
         return ValidationResult(
@@ -143,7 +144,7 @@ class NHSRTTValidator:
                 f"Periods found: {periods}. "
                 f"{'Single period confirmed' if passed else 'MULTIPLE PERIODS — possible concatenated file'}."
             ),
-            details={"periods": periods}
+            details={"periods": periods},
         )
 
     def check_rtt_part_types(self) -> ValidationResult:
@@ -151,8 +152,8 @@ class NHSRTTValidator:
         RTT Part Types must be one of the five known values.
         New values indicate NHS England has changed the format.
         """
-        expected = {'Part_1A', 'Part_1B', 'Part_2', 'Part_2A', 'Part_3'}
-        actual = set(self.df['RTT Part Type'].unique())
+        expected = {"Part_1A", "Part_1B", "Part_2", "Part_2A", "Part_3"}
+        actual = set(self.df["RTT Part Type"].unique())
         unexpected = actual - expected
         passed = len(unexpected) == 0
 
@@ -167,8 +168,8 @@ class NHSRTTValidator:
             details={
                 "expected": list(expected),
                 "actual": list(actual),
-                "unexpected": list(unexpected)
-            }
+                "unexpected": list(unexpected),
+            },
         )
 
     def check_icb_count(self) -> ValidationResult:
@@ -176,7 +177,7 @@ class NHSRTTValidator:
         England has 42 Integrated Care Boards since July 2022.
         A significant change would indicate an NHS reorganisation.
         """
-        icb_count = self.df['Provider Parent Org Code'].nunique()
+        icb_count = self.df["Provider Parent Org Code"].nunique()
         passed = icb_count == self.EXPECTED_ICB_COUNT
 
         return ValidationResult(
@@ -187,7 +188,7 @@ class NHSRTTValidator:
                 f"ICB count: {icb_count}. "
                 f"{'42 confirmed' if passed else f'UNEXPECTED COUNT — NHS reorganisation? Expected {self.EXPECTED_ICB_COUNT}'}."
             ),
-            details={"icb_count": icb_count}
+            details={"icb_count": icb_count},
         )
 
     def check_core_specialties_present(self) -> ValidationResult:
@@ -195,9 +196,7 @@ class NHSRTTValidator:
         Core specialties should always appear in RTT data.
         Missing specialties may indicate a partial file.
         """
-        actual_codes = set(
-            self.df['Treatment Function Code'].unique()
-        )
+        actual_codes = set(self.df["Treatment Function Code"].unique())
         missing = self.CORE_SPECIALTIES - actual_codes
         passed = len(missing) == 0
 
@@ -206,10 +205,9 @@ class NHSRTTValidator:
             passed=passed,
             severity="warning" if not passed else "info",
             message=(
-                f"Core specialties check. "
-                f"{'All present' if passed else f'MISSING: {missing}'}."
+                f"Core specialties check. " f"{'All present' if passed else f'MISSING: {missing}'}."
             ),
-            details={"missing_specialties": list(missing)}
+            details={"missing_specialties": list(missing)},
         )
 
     def check_no_negative_patient_counts(self) -> ValidationResult:
@@ -217,7 +215,7 @@ class NHSRTTValidator:
         Patient counts must never be negative.
         Negative values indicate data corruption or processing errors.
         """
-        numeric_cols = self.df.select_dtypes(include=['number']).columns
+        numeric_cols = self.df.select_dtypes(include=["number"]).columns
         negative_mask = (self.df[numeric_cols] < 0).any(axis=1)
         negative_count = negative_mask.sum()
         passed = negative_count == 0
@@ -230,7 +228,7 @@ class NHSRTTValidator:
                 f"Negative value check. "
                 f"{'No negatives found' if passed else f'NEGATIVE VALUES in {negative_count:,} rows'}."
             ),
-            affected_rows=int(negative_count)
+            affected_rows=int(negative_count),
         )
 
     def check_total_all_never_null(self) -> ValidationResult:
@@ -238,7 +236,7 @@ class NHSRTTValidator:
         Total All is our primary patient count metric and must
         never be null. Null here indicates structural data loss.
         """
-        null_count = self.df['Total All'].isna().sum()
+        null_count = self.df["Total All"].isna().sum()
         passed = null_count == 0
 
         return ValidationResult(
@@ -249,7 +247,7 @@ class NHSRTTValidator:
                 f"Total All null check. "
                 f"{'No nulls' if passed else f'NULL VALUES: {null_count:,} rows affected'}."
             ),
-            affected_rows=int(null_count)
+            affected_rows=int(null_count),
         )
 
     def check_week_band_sum_consistency(self) -> ValidationResult:
@@ -264,32 +262,29 @@ class NHSRTTValidator:
         This is a powerful check — it catches cases where NHS England
         has shifted data between columns without changing the total.
         """
-        part2 = self.df[self.df['RTT Part Type'] == 'Part_2'].copy()
+        part2 = self.df[self.df["RTT Part Type"] == "Part_2"].copy()
 
-        week_cols = [
-            col for col in self.df.columns
-            if 'Weeks SUM' in col
-        ]
+        week_cols = [col for col in self.df.columns if "Weeks SUM" in col]
 
         if not week_cols:
             return ValidationResult(
                 check_name="week_band_sum_consistency",
                 passed=False,
                 severity="error",
-                message="No week band columns found. Column format may have changed."
+                message="No week band columns found. Column format may have changed.",
             )
 
-        part2['week_band_sum'] = part2[week_cols].fillna(0).sum(axis=1)
-        part2['total_all_numeric'] = pd.to_numeric(
-            part2['Total All'], errors='coerce'
-        ).fillna(0)
+        part2["week_band_sum"] = part2[week_cols].fillna(0).sum(axis=1)
+        part2["total_all_numeric"] = pd.to_numeric(part2["Total All"], errors="coerce").fillna(0)
 
         # Check where sum differs from Total All by more than 5%
-        part2['pct_diff'] = abs(
-            part2['week_band_sum'] - part2['total_all_numeric']
-        ) / part2['total_all_numeric'].replace(0, 1) * 100
+        part2["pct_diff"] = (
+            abs(part2["week_band_sum"] - part2["total_all_numeric"])
+            / part2["total_all_numeric"].replace(0, 1)
+            * 100
+        )
 
-        inconsistent = (part2['pct_diff'] > 5).sum()
+        inconsistent = (part2["pct_diff"] > 5).sum()
         total_part2 = len(part2)
         passed = inconsistent == 0
 
@@ -304,8 +299,8 @@ class NHSRTTValidator:
             affected_rows=int(inconsistent),
             details={
                 "total_part2_rows": total_part2,
-                "inconsistent_rows": int(inconsistent)
-            }
+                "inconsistent_rows": int(inconsistent),
+            },
         )
 
     def check_provider_code_format(self) -> ValidationResult:
@@ -315,9 +310,9 @@ class NHSRTTValidator:
         or letter+digit+alphanumeric combinations.
         Invalid codes indicate data entry errors in source systems.
         """
-        codes = self.df['Provider Org Code'].dropna()
+        codes = self.df["Provider Org Code"].dropna()
         # Basic check: codes should be 3-6 characters, alphanumeric
-        invalid_mask = ~codes.str.match(r'^[A-Z0-9]{3,6}$')
+        invalid_mask = ~codes.str.match(r"^[A-Z0-9]{3,6}$")
         invalid_count = invalid_mask.sum()
         passed = invalid_count == 0
 
@@ -329,7 +324,7 @@ class NHSRTTValidator:
                 f"Provider ODS code format check. "
                 f"{'All codes valid' if passed else f'{invalid_count:,} codes have unexpected format'}."
             ),
-            affected_rows=int(invalid_count)
+            affected_rows=int(invalid_count),
         )
 
 
@@ -356,16 +351,16 @@ def run_validations(zip_path: Path) -> bool:
         status = "PASS" if result.passed else "FAIL"
         icon = "✓" if result.passed else "✗"
 
-        log_fn = logger.info if result.passed else (
-            logger.error if result.severity == 'error' else logger.warning
+        log_fn = (
+            logger.info
+            if result.passed
+            else (logger.error if result.severity == "error" else logger.warning)
         )
 
-        log_fn(
-            f"[{status}] {icon} {result.check_name}: {result.message}"
-        )
+        log_fn(f"[{status}] {icon} {result.check_name}: {result.message}")
 
         if not result.passed:
-            if result.severity == 'error':
+            if result.severity == "error":
                 errors.append(result)
             else:
                 warnings.append(result)
@@ -380,8 +375,7 @@ def run_validations(zip_path: Path) -> bool:
 
     if errors:
         logger.error(
-            f"VALIDATION FAILED: {len(errors)} error(s). "
-            f"Pipeline halted before BigQuery load."
+            f"VALIDATION FAILED: {len(errors)} error(s). " f"Pipeline halted before BigQuery load."
         )
         return False
 

@@ -11,7 +11,6 @@ https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
 from dataclasses import dataclass, field
 from typing import Dict, List
 
-
 # ─── NHS Financial Year Configuration ─────────────────────────────────────────
 
 # The NHS financial year runs April to March.
@@ -21,13 +20,13 @@ from typing import Dict, List
 NHS_FINANCIAL_YEARS = {
     "2024-25": {
         "url": "https://www.england.nhs.uk/statistics/statistical-work-areas/"
-                "rtt-waiting-times/rtt-data-2024-25/",
+        "rtt-waiting-times/rtt-data-2024-25/",
         "start_month": "Apr24",
         "end_month": "Mar25",
     },
     "2025-26": {
         "url": "https://www.england.nhs.uk/statistics/statistical-work-areas/"
-                "rtt-waiting-times/rtt-data-2025-26/",
+        "rtt-waiting-times/rtt-data-2025-26/",
         "start_month": "Apr25",
         "end_month": "Mar26",
     },
@@ -43,9 +42,18 @@ CURRENT_FINANCIAL_YEAR = "2025-26"
 # We map Python month numbers to these codes for a given financial year.
 
 MONTH_NUMBER_TO_NHS_CODE = {
-    1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr",
-    5: "May", 6: "Jun", 7: "Jul", 8: "Aug",
-    9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec",
+    1: "Jan",
+    2: "Feb",
+    3: "Mar",
+    4: "Apr",
+    5: "May",
+    6: "Jun",
+    7: "Jul",
+    8: "Aug",
+    9: "Sep",
+    10: "Oct",
+    11: "Nov",
+    12: "Dec",
 }
 
 
@@ -95,7 +103,7 @@ RTT_FILE_TYPES = {
     "full_csv_zip": {
         "pattern": "Full CSV data file {month_code}",
         "extension": ".zip",
-        "priority": 1,          # This is our primary target
+        "priority": 1,  # This is our primary target
         "description": "Complete monthly RTT dataset — all pathways combined",
     },
     "incomplete_provider": {
@@ -118,6 +126,7 @@ PRIMARY_FILE_TYPE = "full_csv_zip"
 
 
 # ─── Pipeline Configuration ────────────────────────────────────────────────────
+
 
 @dataclass
 class PipelineConfig:
@@ -148,11 +157,12 @@ class PipelineConfig:
     max_retries: int = 3
 
     # File validation
-    min_file_size_bytes: int = 10_000   # Reject suspiciously small files
+    min_file_size_bytes: int = 10_000  # Reject suspiciously small files
     max_file_size_bytes: int = 50_000_000  # 50MB upper limit
 
 
 # ─── GCS Path Structure ────────────────────────────────────────────────────────
+
 
 def get_gcs_raw_path(financial_year: str, month_code: str, filename: str) -> str:
     """

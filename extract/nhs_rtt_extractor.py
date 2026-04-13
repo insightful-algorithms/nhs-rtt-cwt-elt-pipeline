@@ -41,12 +41,14 @@ logger = logging.getLogger(__name__)
 
 # ─── Data Classes ─────────────────────────────────────────────────────────────
 
+
 @dataclass
 class DownloadResult:
     """
     Structured result for every file download attempt.
     This becomes the audit record — every download is logged.
     """
+
     month_code: str
     financial_year: str
     source_url: str
@@ -63,6 +65,7 @@ class DownloadResult:
 
 
 # ─── Extractor Class ──────────────────────────────────────────────────────────
+
 
 class NHSRTTExtractor:
     """
@@ -94,15 +97,17 @@ class NHSRTTExtractor:
         indistinguishable from a normal browser visit.
         """
         session = requests.Session()
-        session.headers.update({
-            "User-Agent": (
-                "Mozilla/5.0 (compatible; NHS-RTT-Pipeline/1.0; "
-                "Data Engineering Portfolio Project; "
-                "Contact: github.com/insightful-algorithms)"
-            ),
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-GB,en;q=0.5",
-        })
+        session.headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (compatible; NHS-RTT-Pipeline/1.0; "
+                    "Data Engineering Portfolio Project; "
+                    "Contact: github.com/insightful-algorithms)"
+                ),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-GB,en;q=0.5",
+            }
+        )
         return session
 
     def extract_month(self, year: int, month: int) -> DownloadResult:
@@ -132,16 +137,20 @@ class NHSRTTExtractor:
         page_html = self._fetch_page(page_url)
         if not page_html:
             return self._failed_result(
-                month_code, financial_year, page_url,
-                "Failed to fetch NHS England release page"
+                month_code,
+                financial_year,
+                page_url,
+                "Failed to fetch NHS England release page",
             )
 
         # Step 2: Find the download link for this month's Full CSV ZIP
         download_info = self._find_download_link(page_html, month_code, page_url)
         if not download_info:
             return self._failed_result(
-                month_code, financial_year, page_url,
-                f"Could not find Full CSV ZIP link for {month_code} on {page_url}"
+                month_code,
+                financial_year,
+                page_url,
+                f"Could not find Full CSV ZIP link for {month_code} on {page_url}",
             )
 
         download_url, filename, is_revised = download_info
@@ -152,16 +161,16 @@ class NHSRTTExtractor:
         downloaded = self._download_file(download_url, local_path)
         if not downloaded:
             return self._failed_result(
-                month_code, financial_year, download_url,
-                f"Failed to download file from {download_url}"
+                month_code,
+                financial_year,
+                download_url,
+                f"Failed to download file from {download_url}",
             )
 
         # Step 4: Validate the downloaded file
         validation_error = self._validate_file(local_path)
         if validation_error:
-            return self._failed_result(
-                month_code, financial_year, download_url, validation_error
-            )
+            return self._failed_result(month_code, financial_year, download_url, validation_error)
 
         # Step 5: Inspect ZIP contents
         csv_files = self._list_zip_contents(local_path)
@@ -203,10 +212,7 @@ class NHSRTTExtractor:
         for attempt in range(1, self.config.max_retries + 1):
             try:
                 logger.debug(f"Fetching page (attempt {attempt}): {url}")
-                response = self.session.get(
-                    url,
-                    timeout=self.config.request_timeout_seconds
-                )
+                response = self.session.get(url, timeout=self.config.request_timeout_seconds)
                 response.raise_for_status()
                 return response.text
 
@@ -220,12 +226,7 @@ class NHSRTTExtractor:
         logger.error(f"All {self.config.max_retries} attempts failed for {url}")
         return None
 
-    def _find_download_link(
-        self,
-        html: str,
-        month_code: str,
-        page_url: str
-    ) -> Optional[tuple]:
+    def _find_download_link(self, html: str, month_code: str, page_url: str) -> Optional[tuple]:
         """
         Parse the NHS England release page to find the Full CSV ZIP
         download link for a specific month.
@@ -274,8 +275,7 @@ class NHSRTTExtractor:
                 return download_url, filename, is_revised
 
         logger.warning(
-            f"No Full CSV ZIP link found for {month_code}. "
-            f"Searched for: '{search_text}'"
+            f"No Full CSV ZIP link found for {month_code}. " f"Searched for: '{search_text}'"
         )
         return None
 
@@ -301,9 +301,7 @@ class NHSRTTExtractor:
                     time.sleep(self.config.request_delay_seconds * attempt)
 
                 response = self.session.get(
-                    url,
-                    stream=True,
-                    timeout=self.config.request_timeout_seconds
+                    url, stream=True, timeout=self.config.request_timeout_seconds
                 )
                 response.raise_for_status()
 
@@ -363,10 +361,7 @@ class NHSRTTExtractor:
         """
         try:
             with zipfile.ZipFile(zip_path, "r") as zf:
-                return [
-                    name for name in zf.namelist()
-                    if name.lower().endswith(".csv")
-                ]
+                return [name for name in zf.namelist() if name.lower().endswith(".csv")]
         except zipfile.BadZipFile as e:
             logger.error(f"Cannot read ZIP contents: {e}")
             return []
@@ -387,9 +382,7 @@ class NHSRTTExtractor:
                 md5.update(chunk)
         return md5.hexdigest()
 
-    def _get_local_path(
-        self, financial_year: str, month_code: str, filename: str
-    ) -> Path:
+    def _get_local_path(self, financial_year: str, month_code: str, filename: str) -> Path:
         """
         Build the local file path for a downloaded file.
         Structure: data/raw/rtt/{financial_year}/{month_code}/{filename}
@@ -397,11 +390,7 @@ class NHSRTTExtractor:
         return Path(self.config.raw_data_dir) / "rtt" / financial_year / month_code / filename
 
     def _failed_result(
-        self,
-        month_code: str,
-        financial_year: str,
-        url: str,
-        error: str
+        self, month_code: str, financial_year: str, url: str, error: str
     ) -> DownloadResult:
         """Return a structured failure result for logging and alerting."""
         logger.error(f"Extraction failed for {month_code}: {error}")

@@ -9,7 +9,8 @@ Run with: pytest tests/unit/ -v
 """
 
 import pytest
-from extract.config import get_nhs_month_code, get_financial_year_for_month
+
+from extract.config import get_financial_year_for_month, get_nhs_month_code
 
 
 class TestGetNHSMonthCode:
@@ -32,14 +33,24 @@ class TestGetNHSMonthCode:
     def test_all_months_produce_three_letter_prefix(self):
         """All month codes should start with a three-letter month name."""
         months = [
-            "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
         ]
         for i, expected_prefix in enumerate(months, 1):
             result = get_nhs_month_code(2026, i)
-            assert result.startswith(expected_prefix), (
-                f"Month {i} should start with {expected_prefix}, got {result}"
-            )
+            assert result.startswith(
+                expected_prefix
+            ), f"Month {i} should start with {expected_prefix}, got {result}"
 
     def test_two_digit_year_suffix(self):
         """Year suffix should always be two digits."""
