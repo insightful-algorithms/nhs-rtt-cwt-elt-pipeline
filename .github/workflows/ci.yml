@@ -1,0 +1,160 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# GitHub Actions CI/CD Pipeline — NHS RTT ELT Pipeline
+# ─────────────────────────────────────────────────────────────────────────────
+# Triggers: Every pull request to main, every push to main
+#
+# What this pipeline does:
+#   1. Runs on every PR — blocks merge if any check fails
+#   2. Lints Python code with flake8
+#   3. Checks formatting with black
+#   4. Runs unit tests with pytest
+#   5. Validates dbt project compiles without errors
+#   6. Checks dbt model documentation is complete
+#
+# Why CI/CD matters:
+#   In a professional team, no code reaches main without
+#   automated checks passing. This protects the production
+#   pipeline from broken code, style inconsistencies, and
+#   undocumented models. NHS and Civil Service technical
+#   assessors will look for this in your portfolio.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: NHS RTT Pipeline CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Job 1: Python code quality ─────────────────────────────────────────────
+  python-quality:
+    name: Python Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black isort pytest pytest-mock
+          pip install requests beautifulsoup4 lxml pandas python-dotenv
+
+      - name: Check code formatting with black
+        run: |
+          black --check --diff extract/ tests/
+        continue-on-error: false
+
+      - name: Check import ordering with isort
+        run: |
+          isort --check-only --diff extract/ tests/
+
+      - name: Lint with flake8
+        run: |
+          flake8 extract/ tests/ \
+            --max-line-length=100 \
+            --extend-ignore=E203,W503 \
+            --exclude=venv,__pycache__
+
+      - name: Run unit tests
+        run: |
+          pytest tests/unit/ -v --tb=short
+
+  # ── Job 2: dbt validation ──────────────────────────────────────────────────
+  dbt-validation:
+    name: dbt Model Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dbt
+        run: |
+          pip install dbt-core==1.8.0
+
+      - name: Validate dbt project structure
+        working-directory: dbt/nhs_rtt
+        run: |
+          dbt parse --profiles-dir ../
+        env:
+          GCP_PROJECT_ID: "ci-validation-placeholder"
+          GCP_DBT_DATASET: "ci_validation"
+          GOOGLE_APPLICATION_CREDENTIALS: "/dev/null"
+
+      - name: Check all models have descriptions
+        working-directory: dbt/nhs_rtt
+        run: |
+          python -c "
+          import yaml
+          import sys
+          from pathlib import Path
+
+          missing = []
+          for yml_file in Path('models').rglob('*.yml'):
+              with open(yml_file) as f:
+                  content = yaml.safe_load(f)
+              if not content or 'models' not in content:
+                  continue
+              for model in content.get('models', []):
+                  if not model.get('description'):
+                      missing.append(model.get('name', 'unknown'))
+
+          if missing:
+              print(f'Models missing descriptions: {missing}')
+              sys.exit(1)
+          else:
+              print('All models have descriptions.')
+          "
+
+  # ── Job 3: Security scan ───────────────────────────────────────────────────
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for hardcoded secrets
+        run: |
+          # Scan for common secret patterns
+          # Fails if any real credentials are found in code
+          if grep -rE \
+            "(AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z\-_]{35}|ya29\.[0-9A-Za-z\-_]+)" \
+            --include="*.py" \
+            --include="*.yml" \
+            --include="*.yaml" \
+            --include="*.json" \
+            --exclude-dir=".git" \
+            --exclude-dir="venv" \
+            .; then
+            echo "SECURITY ALERT: Possible hardcoded credentials found"
+            exit 1
+          else
+            echo "No hardcoded credentials detected"
+          fi
+
+      - name: Verify .env is not committed
+        run: |
+          if git ls-files | grep -q "^\.env$"; then
+            echo "SECURITY ALERT: .env file is tracked by Git"
+            exit 1
+          else
+            echo ".env file is not tracked — secure"
+          fi

@@ -1,0 +1,118 @@
+{
+  "data_asset_type": null,
+  "expectation_suite_name": "nhs_rtt_raw_suite",
+  "expectations": [
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": {
+        "min_value": 50000,
+        "max_value": 300000
+      },
+      "meta": {
+        "notes": "NHS RTT monthly files consistently contain 150k-200k rows. Alert if count is outside this range — may indicate a partial download or format change."
+      }
+    },
+
+    {
+      "expectation_type": "expect_table_column_count_to_equal",
+      "kwargs": {
+        "value": 121
+      },
+      "meta": {
+        "notes": "NHS England RTT full extract has 121 columns. If this changes, NHS England has changed the format and all downstream models must be reviewed."
+      }
+    },
+
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "Period"
+      },
+      "meta": {
+        "notes": "Period is the reporting month identifier. Never null."
+      }
+    },
+
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "Period",
+        "regex": "^RTT-[A-Za-z]+ [0-9]{4}$"
+      },
+      "meta": {
+        "notes": "Period must match format RTT-MonthName YYYY e.g. RTT-January-2026. If format changes our date parsing in staging will break."
+      }
+    },
+
+    {
+      "expectation_type": "expect_column_distinct_values_to_equal_set",
+      "kwargs": {
+        "column": "RTT Part Type",
+        "value_set": ["Part_1A", "Part_1B", "Part_2", "Part_2A", "Part_3"]
+      },
+      "meta": {
+        "notes": "RTT Part Types are fixed. Any new value indicates NHS England has introduced a new pathway type requiring model review."
+      }
+    },
+
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "Provider Org Code"
+      },
+      "meta": {
+        "notes": "Every row must have a provider ODS code. Null provider codes cannot be attributed to a trust."
+      }
+    },
+
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "Total All"
+      },
+      "meta": {
+        "notes": "Total All is the primary patient count. Never null in source data — null here indicates a structural issue."
+      }
+    },
+
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "Total All",
+        "min_value": 0,
+        "max_value": 500000
+      },
+      "meta": {
+        "notes": "Individual trust-specialty patient counts should not exceed 500k. Values above this indicate data corruption or format errors."
+      }
+    },
+
+    {
+      "expectation_type": "expect_column_proportion_of_unique_values_to_be_between",
+      "kwargs": {
+        "column": "Provider Org Code",
+        "min_value": 0.001,
+        "max_value": 0.01
+      },
+      "meta": {
+        "notes": "Provider codes should have low uniqueness ratio — each trust appears many times (once per specialty per pathway type). Very high uniqueness would indicate code-level rather than trust-level data."
+      }
+    },
+
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "Treatment Function Code"
+      },
+      "meta": {
+        "notes": "Every row must have a treatment function code identifying the clinical specialty."
+      }
+    }
+  ],
+  "meta": {
+    "great_expectations_version": "0.18.19",
+    "description": "Expectation suite for NHS RTT raw full extract CSV files. Validates structural integrity before BigQuery load. Maintained by the data engineering team.",
+    "owner": "data-engineering",
+    "last_reviewed": "2026-04-01"
+  }
+}
