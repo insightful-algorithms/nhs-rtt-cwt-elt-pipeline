@@ -8,8 +8,6 @@ wrong month codes, the extractor downloads the wrong files.
 Run with: pytest tests/unit/ -v
 """
 
-import pytest
-
 from extract.config import get_financial_year_for_month, get_nhs_month_code
 
 

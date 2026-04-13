@@ -8,8 +8,7 @@ All NHS data is published under the Open Government Licence v3.0:
 https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List
+from dataclasses import dataclass
 
 # ─── NHS Financial Year Configuration ─────────────────────────────────────────
 

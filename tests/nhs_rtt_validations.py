@@ -142,7 +142,7 @@ class NHSRTTValidator:
             severity="error" if not passed else "info",
             message=(
                 f"Periods found: {periods}. "
-                f"{'Single period confirmed' if passed else 'MULTIPLE PERIODS — possible concatenated file'}."
+                f"{'Single period confirmed' if passed else 'MULTIPLE PERIODS'}."
             ),
             details={"periods": periods},
         )
@@ -186,7 +186,7 @@ class NHSRTTValidator:
             severity="warning" if not passed else "info",
             message=(
                 f"ICB count: {icb_count}. "
-                f"{'42 confirmed' if passed else f'UNEXPECTED COUNT — NHS reorganisation? Expected {self.EXPECTED_ICB_COUNT}'}."
+                f"{'42 confirmed' if passed else 'UNEXPECTED COUNT — check NHS reorganisation'}."
             ),
             details={"icb_count": icb_count},
         )
@@ -226,7 +226,7 @@ class NHSRTTValidator:
             severity="error" if not passed else "info",
             message=(
                 f"Negative value check. "
-                f"{'No negatives found' if passed else f'NEGATIVE VALUES in {negative_count:,} rows'}."
+                f"{'No negatives found' if passed else 'NEGATIVE VALUES found'}."
             ),
             affected_rows=int(negative_count),
         )
@@ -294,7 +294,7 @@ class NHSRTTValidator:
             severity="warning" if not passed else "info",
             message=(
                 f"Week band sum vs Total All check (Part_2 rows). "
-                f"{'Consistent' if passed else f'{inconsistent:,} of {total_part2:,} rows have >5% discrepancy'}."
+                f"{'Consistent' if passed else 'Discrepancies found — review week band totals'}."
             ),
             affected_rows=int(inconsistent),
             details={
@@ -322,7 +322,7 @@ class NHSRTTValidator:
             severity="warning" if not passed else "info",
             message=(
                 f"Provider ODS code format check. "
-                f"{'All codes valid' if passed else f'{invalid_count:,} codes have unexpected format'}."
+                f"{'All codes valid' if passed else 'Invalid ODS code format detected'}."
             ),
             affected_rows=int(invalid_count),
         )
