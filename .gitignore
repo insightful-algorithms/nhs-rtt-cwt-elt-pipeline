@@ -209,3 +209,13 @@ __marimo__/
 
 # Local learning and development notes — never publish
 LEARNING_NOTES.md
+
+
+# Virtual environment — never commit
+venv/
+
+
+# Local test scripts and downloaded data
+test_extractor.py
+profile_data.py
+data/
