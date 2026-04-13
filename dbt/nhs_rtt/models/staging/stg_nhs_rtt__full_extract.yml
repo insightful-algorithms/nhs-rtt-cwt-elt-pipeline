@@ -1,0 +1,69 @@
+version: 2
+
+models:
+  - name: stg_nhs_rtt__full_extract
+    description: >
+      Cleaned and standardised NHS RTT full extract data.
+      One row per provider-commissioner-specialty-pathway combination
+      per reporting month. All 121 source columns are renamed to
+      snake_case. Nulls in week-band columns are replaced with 0.
+      Period string is parsed into a proper DATE field.
+
+    columns:
+      - name: period_date
+        description: >
+          Reporting period as a DATE (first day of reporting month).
+          Parsed from the raw 'RTT-January-2026' format.
+        tests:
+          - not_null
+
+      - name: financial_year
+        description: >
+          NHS financial year in format '2025-26'. Derived from period_date.
+          NHS year runs April to March.
+        tests:
+          - not_null
+
+      - name: provider_org_code
+        description: NHS ODS code for the provider trust.
+        tests:
+          - not_null
+
+      - name: provider_org_name
+        description: Full name of the provider trust.
+        tests:
+          - not_null
+
+      - name: rtt_part_type
+        description: RTT pathway type code.
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                - Part_1A
+                - Part_1B
+                - Part_2
+                - Part_2A
+                - Part_3
+
+      - name: treatment_function_code
+        description: Clinical specialty code.
+        tests:
+          - not_null
+
+      - name: total_all
+        description: >
+          Total patient count. Never null in source data.
+          Primary patient count metric for this row.
+        tests:
+          - not_null
+
+      - name: _loaded_at
+        description: Timestamp when this record was processed by dbt.
+        tests:
+          - not_null
+
+      - name: _source
+        description: Source system identifier for audit purposes.
+        tests:
+          - not_null

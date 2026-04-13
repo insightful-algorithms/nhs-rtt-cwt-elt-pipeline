@@ -1,0 +1,25 @@
+treatment_function_code,treatment_function_name,specialty_group,is_surgical
+C_999,Total,Summary,false
+C_100,General Surgery Service,Surgical,true
+C_101,Urology Service,Surgical,true
+C_110,Trauma and Orthopaedic Service,Surgical,true
+C_120,Ear Nose and Throat Service,Surgical,true
+C_130,Ophthalmology Service,Surgical,true
+C_140,Oral Surgery Service,Surgical,true
+C_150,Neurosurgery Service,Surgical,true
+C_160,Plastic Surgery Service,Surgical,true
+C_170,Cardiothoracic Surgery Service,Surgical,true
+C_190,General Medicine Service,Medical,false
+C_300,Dermatology Service,Medical,false
+C_301,Gastroenterology Service,Medical,false
+C_320,Cardiology Service,Medical,false
+C_330,Dermatology Service,Medical,false
+C_340,Respiratory Medicine Service,Medical,false
+C_400,Neurology Service,Medical,false
+C_410,Rheumatology Service,Medical,false
+C_502,Gynaecology Service,Surgical,true
+C_504,Obstetrics Service,Medical,false
+C_711,Diagnostic Imaging Service,Diagnostic,false
+X02,Other - Medical Services,Other,false
+X05,Other - Surgical Services,Other,true
+X09,Other - Mental Health Services,Other,false

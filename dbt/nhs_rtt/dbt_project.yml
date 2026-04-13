@@ -1,0 +1,70 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# dbt Project Configuration — NHS RTT & CWT Pipeline
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: "nhs_rtt"
+version: "1.0.0"
+config-version: 2
+
+# This tells dbt where to find the profiles.yml connection config.
+# In production (Airflow), this is overridden by --profiles-dir flag.
+profile: "nhs_rtt"
+
+# ─── Directory layout ─────────────────────────────────────────────────────────
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+# ─── Model configuration ──────────────────────────────────────────────────────
+# These settings apply to all models unless overridden at model level.
+
+models:
+  nhs_rtt:
+    staging:
+      # Staging models are views — they add no storage cost
+      # and always reflect the latest raw data automatically.
+      +materialized: view
+      +schema: staging
+      +tags: ["staging", "nhs", "rtt"]
+
+    intermediate:
+      # Intermediate models are tables — the unpivot operation
+      # is expensive to repeat on every query. Materialise once.
+      +materialized: table
+      +schema: intermediate
+      +tags: ["intermediate", "nhs", "rtt"]
+
+    marts:
+      # Mart models are tables — optimised for dashboard queries.
+      # Partitioned and clustered for BigQuery cost efficiency.
+      +materialized: table
+      +schema: marts
+      +tags: ["marts", "nhs", "rtt"]
+
+# ─── Seed configuration ───────────────────────────────────────────────────────
+seeds:
+  nhs_rtt:
+    +schema: seeds
+    +column_types:
+      treatment_function_code: string
+      treatment_function_name: string
+      specialty_group: string
+      is_surgical: boolean
+
+# ─── Snapshot configuration ───────────────────────────────────────────────────
+# SCD Type 2 for provider reference data — tracks trust name changes
+snapshots:
+  nhs_rtt:
+    +target_schema: snapshots
+    +strategy: check
+    +unique_key: provider_org_code
+    +check_cols:
+      - provider_org_name
+      - provider_parent_org_code
+      - provider_parent_name
