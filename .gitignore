@@ -218,4 +218,5 @@ venv/
 # Local test scripts and downloaded data
 test_extractor.py
 profile_data.py
-data/
+data/dbt/ .user.yml
+dbt/.user.yml
