@@ -1,0 +1,24 @@
+nhs_rtt:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('GCP_PROJECT_ID') }}"
+      dataset: "{{ env_var('GCP_DBT_DATASET') }}"
+      location: europe-west2
+      keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS') }}"
+      threads: 4
+      timeout_seconds: 300
+      priority: interactive
+
+    prod:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('GCP_PROJECT_ID') }}"
+      dataset: "{{ env_var('GCP_DBT_DATASET') }}"
+      location: europe-west2
+      keyfile: /opt/airflow/secrets/keyfile.json
+      threads: 8
+      timeout_seconds: 600
+      priority: batch
