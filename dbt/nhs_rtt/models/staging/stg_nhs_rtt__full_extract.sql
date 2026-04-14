@@ -39,7 +39,7 @@ renamed as (
 
         parse_date(
             '%B %Y',
-            regexp_replace(`Period`, r'^RTT-', '')
+            replace(regexp_replace(`Period`, r'^RTT-', ''), '-', ' ')
         )                                           as period_date,
 
         -- Derive the NHS financial year (April to March)
@@ -47,28 +47,28 @@ renamed as (
         case
             when extract(month from parse_date(
                 '%B %Y',
-                regexp_replace(`Period`, r'^RTT-', '')
+                replace(regexp_replace(`Period`, r'^RTT-', ''), '-', ' ')
             )) >= 4
             then concat(
                 cast(extract(year from parse_date(
                     '%B %Y',
-                    regexp_replace(`Period`, r'^RTT-', '')
+                    replace(regexp_replace(`Period`, r'^RTT-', ''), '-', ' ')
                 )) as string),
                 '-',
                 right(cast(extract(year from parse_date(
                     '%B %Y',
-                    regexp_replace(`Period`, r'^RTT-', '')
+                    replace(regexp_replace(`Period`, r'^RTT-', ''), '-', ' ')
                 )) + 1 as string), 2)
             )
             else concat(
                 cast(extract(year from parse_date(
                     '%B %Y',
-                    regexp_replace(`Period`, r'^RTT-', '')
+                    replace(regexp_replace(`Period`, r'^RTT-', ''), '-', ' ')
                 )) - 1 as string),
                 '-',
                 right(cast(extract(year from parse_date(
                     '%B %Y',
-                    regexp_replace(`Period`, r'^RTT-', '')
+                    replace(regexp_replace(`Period`, r'^RTT-', ''), '-', ' ')
                 )) as string), 2)
             )
         end                                         as financial_year,

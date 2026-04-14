@@ -33,26 +33,3 @@ sources:
           Contains 104 weekly wait band columns plus summary totals.
           Source: NHS England statistical releases.
           URL: https://www.england.nhs.uk/statistics/statistical-work-areas/rtt-waiting-times/
-        columns:
-          - name: Period
-            description: >
-              Reporting period in format RTT-MonthYear (e.g. RTT-January-2026).
-              Always a single value per monthly file.
-          - name: Provider Org Code
-            description: NHS ODS code for the provider trust. 517 unique providers.
-            tests:
-              - not_null
-          - name: RTT Part Type
-            description: >
-              Pathway type code. Part_2 = Incomplete (18-week target).
-              Part_1A = Admitted. Part_1B = Non-Admitted. Part_3 = New periods.
-            tests:
-              - not_null
-              - accepted_values:
-                  values: ["Part_1A", "Part_1B", "Part_2", "Part_2A", "Part_3"]
-          - name: Total All
-            description: >
-              Total patient count for this row. Never null.
-              Primary patient count metric.
-            tests:
-              - not_null
