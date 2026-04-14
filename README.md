@@ -38,6 +38,25 @@ with a robust, automated, auditable ELT pipeline.
 
 ---
 
+## Live Dashboard
+
+**NHS RTT Performance Dashboard — England 2025-26**
+
+Real-time performance monitoring for NHS Referral To Treatment
+waiting times across all English trusts and specialties.
+
+[View Live Dashboard](https://lookerstudio.google.com/reporting/04501192-988b-4c52-835f-0fd814d68f79)
+
+| Metric                   | January 2026 |
+| ------------------------ | ------------ |
+| Total patients waiting   | 7,187,677    |
+| Patients within 18 weeks | 4,412,147    |
+| 18-week performance      | 60.94%       |
+| Constitutional standard  | 92.0%        |
+| Data last updated        | January 2026 |
+
+---
+
 ## Data Sources
 
 | Dataset              | Publisher   | Frequency | Volume            |
