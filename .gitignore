@@ -220,3 +220,4 @@ test_extractor.py
 profile_data.py
 data/dbt/ .user.yml
 dbt/.user.yml
+data
