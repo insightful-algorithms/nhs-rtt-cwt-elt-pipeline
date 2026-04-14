@@ -221,3 +221,4 @@ profile_data.py
 data/dbt/ .user.yml
 dbt/.user.yml
 data
+dbt/nhs_rtt/dbt_packages/
