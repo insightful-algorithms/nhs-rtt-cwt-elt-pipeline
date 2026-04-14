@@ -107,7 +107,7 @@ def run_backfill(
     results = []
 
     logger.info("=" * 60)
-    logger.info(f"NHS RTT Historical Backfill")
+    logger.info("NHS RTT Historical Backfill")
     logger.info(f"Months to process: {len(months)}")
     logger.info(f"Dry run: {dry_run}")
     logger.info(f"Force re-download: {force}")
@@ -118,36 +118,34 @@ def run_backfill(
         month_code = get_nhs_month_code(year, month)
         financial_year = get_financial_year_for_month(year, month)
 
-        logger.info(
-            f"[{i}/{len(months)}] Processing {month_code} "
-            f"({financial_year})"
-        )
+        logger.info(f"[{i}/{len(months)}] Processing {month_code} " f"({financial_year})")
 
         # Check if already downloaded
-        local_path = extractor._get_local_path(
-            financial_year, month_code, f"*.zip"
-        )
+
         local_dir = Path(config.raw_data_dir) / "rtt" / financial_year / month_code
 
         if local_dir.exists() and any(local_dir.glob("*.zip")) and not force:
             existing = list(local_dir.glob("*.zip"))[0]
             logger.info(
-                f"  Already downloaded: {existing.name} — skipping. "
-                f"Use --force to re-download."
+                f"  Already downloaded: {existing.name} — skipping. " f"Use --force to re-download."
             )
-            results.append({
-                "month_code": month_code,
-                "status": "skipped",
-                "reason": "already exists",
-            })
+            results.append(
+                {
+                    "month_code": month_code,
+                    "status": "skipped",
+                    "reason": "already exists",
+                }
+            )
             continue
 
         if dry_run:
             logger.info(f"  DRY RUN — would download {month_code}")
-            results.append({
-                "month_code": month_code,
-                "status": "dry_run",
-            })
+            results.append(
+                {
+                    "month_code": month_code,
+                    "status": "dry_run",
+                }
+            )
             continue
 
         # Download the month
@@ -159,24 +157,26 @@ def run_backfill(
                 f"({result.file_size_bytes:,} bytes) "
                 f"revised={result.is_revised}"
             )
-            results.append({
-                "month_code": month_code,
-                "status": "success",
-                "filename": result.filename,
-                "file_size_bytes": result.file_size_bytes,
-                "is_revised": result.is_revised,
-                "md5": result.md5_checksum,
-                "csv_files": result.csv_files_inside_zip,
-            })
-        else:
-            logger.error(
-                f"  FAILED — {result.error_message}"
+            results.append(
+                {
+                    "month_code": month_code,
+                    "status": "success",
+                    "filename": result.filename,
+                    "file_size_bytes": result.file_size_bytes,
+                    "is_revised": result.is_revised,
+                    "md5": result.md5_checksum,
+                    "csv_files": result.csv_files_inside_zip,
+                }
             )
-            results.append({
-                "month_code": month_code,
-                "status": "failed",
-                "error": result.error_message,
-            })
+        else:
+            logger.error(f"  FAILED — {result.error_message}")
+            results.append(
+                {
+                    "month_code": month_code,
+                    "status": "failed",
+                    "error": result.error_message,
+                }
+            )
 
         # Polite delay between requests
         if i < len(months):
@@ -190,8 +190,8 @@ def run_backfill(
 
     success = [r for r in results if r["status"] == "success"]
     skipped = [r for r in results if r["status"] == "skipped"]
-    failed  = [r for r in results if r["status"] == "failed"]
-    dry     = [r for r in results if r["status"] == "dry_run"]
+    failed = [r for r in results if r["status"] == "failed"]
+    dry = [r for r in results if r["status"] == "dry_run"]
 
     logger.info(f"Total months:    {len(results)}")
     logger.info(f"Downloaded:      {len(success)}")
@@ -203,14 +203,12 @@ def run_backfill(
     if success:
         total_bytes = sum(r.get("file_size_bytes", 0) for r in success)
         logger.info(
-            f"Total downloaded: {total_bytes:,} bytes "
-            f"({total_bytes / 1_000_000:.1f} MB)"
+            f"Total downloaded: {total_bytes:,} bytes " f"({total_bytes / 1_000_000:.1f} MB)"
         )
         revised = [r for r in success if r.get("is_revised")]
         if revised:
             logger.info(
-                f"Revised files:   {len(revised)} "
-                f"({[r['month_code'] for r in revised]})"
+                f"Revised files:   {len(revised)} " f"({[r['month_code'] for r in revised]})"
             )
 
     if failed:
@@ -224,39 +222,26 @@ def run_backfill(
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="NHS RTT historical data backfill"
-    )
+    parser = argparse.ArgumentParser(description="NHS RTT historical data backfill")
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
-        "--months", type=int,
-        help="Number of recent months to download (e.g. --months 6)"
+        "--months", type=int, help="Number of recent months to download (e.g. --months 6)"
     )
-    group.add_argument(
-        "--start", type=str,
-        help="Start month in YYYY-MM format (use with --end)"
-    )
+    group.add_argument("--start", type=str, help="Start month in YYYY-MM format (use with --end)")
 
+    parser.add_argument("--end", type=str, help="End month in YYYY-MM format (use with --start)")
     parser.add_argument(
-        "--end", type=str,
-        help="End month in YYYY-MM format (use with --start)"
+        "--dry-run", action="store_true", help="Show what would be downloaded without downloading"
     )
     parser.add_argument(
-        "--dry-run", action="store_true",
-        help="Show what would be downloaded without downloading"
+        "--force", action="store_true", help="Re-download even if file already exists"
     )
     parser.add_argument(
-        "--force", action="store_true",
-        help="Re-download even if file already exists"
+        "--delay", type=float, default=3.0, help="Delay in seconds between requests (default: 3.0)"
     )
     parser.add_argument(
-        "--delay", type=float, default=3.0,
-        help="Delay in seconds between requests (default: 3.0)"
-    )
-    parser.add_argument(
-        "--data-dir", type=str, default="./data/raw",
-        help="Local directory for downloaded files"
+        "--data-dir", type=str, default="./data/raw", help="Local directory for downloaded files"
     )
 
     args = parser.parse_args()
